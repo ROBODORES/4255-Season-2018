@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.CameraServer;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.Joystick;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
@@ -28,18 +29,9 @@ public class Robot extends IterativeRobot {
 	int pan =0;
 	int tilt = 0;
 	
-	boolean h = false;
-	boolean reverse = false;
-	boolean clicked = false;
 	Joystick jL = new Joystick (0);
     Joystick jR = new Joystick (1);
     Joystick jS = new Joystick (2);
-    
-    double maxA = 0.0;
-    double minA = 0.0;
-    double angle = 0.0;
-    
-    boolean go = false;
 	
     AHRS navX = new AHRS(SPI.Port.kMXP);
     
@@ -57,13 +49,15 @@ public class Robot extends IterativeRobot {
     
     DigitalInput limit = new DigitalInput(9);
 	Spark pickup = new Spark(0);
-	Solenoid push = new Solenoid(4);
+	
+	CameraServer camserv;
 
 	@Override
 	public void robotInit() {
 		m_chooser.addDefault("Default Auto", kDefaultAuto);
 		m_chooser.addObject("My Auto", kCustomAuto);
 		SmartDashboard.putData("Auto choices", m_chooser);
+		
 	    rightDrive.setInverted(true);
 	    rightFollow1.setInverted(true);
 	    rightFollow2.setInverted(true);
@@ -71,6 +65,10 @@ public class Robot extends IterativeRobot {
 		leftFollow2.follow(leftDrive);
 		rightFollow1.follow(rightDrive);
 		rightFollow2.follow(rightDrive);
+		
+		camserv = CameraServer.getInstance();
+	    camserv.startAutomaticCapture(0);
+	    //camserv.putVideo("Blur", 1280, 720);
 	}
 
 	@Override
@@ -93,11 +91,7 @@ public class Robot extends IterativeRobot {
 	
 	@Override
 	public void teleopInit() {
-		h = false;
-		go = false;
 		time.start();
-		maxA = 0.0;
-		minA = 0.0;
 		pan = 500;
 		tilt = 500;
 	}
