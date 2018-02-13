@@ -68,7 +68,6 @@ public class Robot extends IterativeRobot {
 		
 		camserv = CameraServer.getInstance();
 	    camserv.startAutomaticCapture(0);
-	    //camserv.putVideo("Blur", 1280, 720);
 	}
 
 	@Override
