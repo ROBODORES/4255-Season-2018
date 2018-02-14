@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.cscore.UsbCamera;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.Joystick;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
@@ -51,6 +52,7 @@ public class Robot extends IterativeRobot {
 	Spark pickup = new Spark(0);
 	
 	CameraServer camserv;
+	UsbCamera cam0;
 
 	@Override
 	public void robotInit() {
@@ -67,7 +69,10 @@ public class Robot extends IterativeRobot {
 		rightFollow2.follow(rightDrive);
 		
 		camserv = CameraServer.getInstance();
-	    camserv.startAutomaticCapture(0);
+	    
+	    cam0 = camserv.startAutomaticCapture(0);
+	    cam0.setResolution(1920, 1080);
+	    cam0.setFPS(30);
 	}
 
 	@Override
