@@ -9,31 +9,20 @@ public class NavDrive {
 	private AHRS navX;
 	private Drive drive;
 	private Timer time;
-	private double previousAngle;
-	private double leeway;
 	private double driveSpeed;
-	private int caseStep;
-	private boolean reverse;
 	
 	public NavDrive(AHRS navX, Drive drive) {
 		this.navX = navX;
 		this.drive = drive;
 		time = new Timer();
 		time.start();
-		previousAngle = 0.0;
 		driveSpeed = 0.0;
-		caseStep = 0;
-		leeway = 0.0;
-		reverse = true;
 	}
 	
 	void reset() {
 		navX.reset();
 		time.reset();
-		previousAngle = 0.0;
 		driveSpeed = 0.0;
-		caseStep = 0;
-		reverse = true;
 	}
 	
 	boolean turnTo(double angle) {

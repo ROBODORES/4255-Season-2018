@@ -3,6 +3,7 @@ package org.usfirst.frc.team4255.robot;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.SPI;
@@ -21,7 +22,6 @@ public class Robot extends IterativeRobot {
 	private static final String kDefaultAuto = "Default";
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
-	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	
 	Timer time = new Timer();
 	
@@ -30,9 +30,10 @@ public class Robot extends IterativeRobot {
 	int pan =0;
 	int tilt = 0;
 	
-	Joystick jL = new Joystick (0);
-    Joystick jR = new Joystick (1);
-    Joystick jS = new Joystick (2);
+	Joystick jLeft = new Joystick (0);
+    Joystick jRight = new Joystick (1);
+    Joystick jSide = new Joystick (2);
+    Joystick chooser = new Joystick (3);
 	
     AHRS navX = new AHRS(SPI.Port.kMXP);
     
@@ -54,12 +55,10 @@ public class Robot extends IterativeRobot {
 	CameraServer camserv;
 	UsbCamera cam0;
 
+	String sides;
+	String position;
 	@Override
 	public void robotInit() {
-		m_chooser.addDefault("Default Auto", kDefaultAuto);
-		m_chooser.addObject("My Auto", kCustomAuto);
-		SmartDashboard.putData("Auto choices", m_chooser);
-		
 	    rightDrive.setInverted(true);
 	    rightFollow1.setInverted(true);
 	    rightFollow2.setInverted(true);
@@ -77,18 +76,37 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void autonomousInit() {
-		m_autoSelected = m_chooser.getSelected();
-		System.out.println("Auto selected: " + m_autoSelected);
+		sides = DriverStation.getInstance().getGameSpecificMessage();
+		if (chooser.getRawButton(1)) position = "Left";
+		else if (chooser.getRawButton(2)) position = "Right";
+		else position = "Middle";
+		System.out.println("Auto Selected: " + position);
 		navX.reset();
 	}
 
 	@Override
 	public void autonomousPeriodic() {
-		switch (m_autoSelected) {
-			case kCustomAuto:
+		drive.driveTo(3);
+		switch (position) {
+			case "Left":
+				
 				break;
-			case kDefaultAuto:
-			default:
+			case "Middle":
+				if (sides.charAt(0) == 'L') {
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0)); //for(drive.zeroLeftDist(); drive.leftDist()<7; drive.setDrive(0.8, 0.8, false));
+					navDrive.reset(); while (!navDrive.turnTo(-90.0));
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0)); //for(drive.zeroLeftDist(); drive.leftDist()<7; drive.setDrive(0.8, 0.8, false));
+					navDrive.reset(); while (!navDrive.turnTo(90.0));
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0)); //for(drive.zeroLeftDist(); drive.leftDist()<7; drive.setDrive(0.8, 0.8, false));
+				} else {
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0));
+					navDrive.reset(); while (!navDrive.turnTo(90.0));
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0));
+					navDrive.reset(); while (!navDrive.turnTo(-90.0));
+					drive.zeroLeftDist(); while (!drive.driveTo(7.0));
+				}
+				break;
+			case "Right":
 				break;
 		}
 	}
@@ -104,7 +122,7 @@ public class Robot extends IterativeRobot {
 	public void teleopPeriodic() {
 		System.out.println("Pos: " + drive.leftDist());
 		System.out.println("Vel: " + drive.leftVelocity());
-		if (jR.getRawButton(1)) {
+		if (jRight.getRawButton(1)) {
 		if (pixy.update()) {
 			pan += (160 - pixy.objectX[0])/2.0;
 			pan  = (int)etc.constrain((double)pan, 0, 1000);
@@ -133,8 +151,8 @@ public class Robot extends IterativeRobot {
 		}
 		pixy.setPanTilt(pan, tilt);
 		} else {
-			jR.setTwistChannel(3);
-			drive.singleJoystickDrive(-jR.getY(), -jR.getTwist(), false);
+			jRight.setTwistChannel(3);
+			drive.singleJoystickDrive(-jRight.getY(), -jRight.getTwist(), false);
 		}
 	}
 	

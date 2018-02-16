@@ -8,12 +8,14 @@ import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
 public class Drive {
 	public static TalonSRX leftDrive, rightDrive;
 	private static long leftZero, rightZero;
+	private double driveSpeed;
 	
 	public Drive(TalonSRX leftDrive, FeedbackDevice leftFeedback, TalonSRX rightDrive, FeedbackDevice rightFeedback) {
 		this.leftDrive = leftDrive;
 		this.rightDrive = rightDrive;
 		leftZero = 0;
 		rightZero = 0;
+		driveSpeed = 0;
 		leftDrive.setStatusFramePeriod(StatusFrameEnhanced.Status_2_Feedback0, 1, 10);
 		leftDrive.configSelectedFeedbackSensor(leftFeedback, 0, 10);
 		rightDrive.setStatusFramePeriod(StatusFrameEnhanced.Status_2_Feedback0, 1, 10);
@@ -63,5 +65,25 @@ public class Drive {
 	
 	public static double rightVelocity() { //returns velocity in feet/second
 		return ((double)(rightDrive.getSelectedSensorVelocity(0)*10)/4096.0)*(6*Math.PI)/12.0;
+	}
+	
+	void reset() {
+		zeroLeftDist();
+		driveSpeed = 0.0;
+	}
+	
+	public boolean driveTo(double distance) { //don't run 
+		setDrive(driveSpeed, driveSpeed, false);
+		if (Math.abs(leftDist()) <= Math.abs(distance)- 1.5) {
+			driveSpeed += (((300.0/20.0)*(distance-leftDist())) - leftVelocity())/1000.0;
+			if (Math.abs(leftDist()) >= Math.abs(distance)) {
+				setDrive(0.0, 0.0, false);
+				return true;
+			}
+		}
+		else {
+			driveSpeed += (300.0*(distance/Math.abs(distance)) - leftVelocity())/8000.0;
+		}
+		return false;
 	}
 }
