@@ -72,17 +72,20 @@ public class Drive {
 		driveSpeed = 0.0;
 	}
 	
-	public boolean driveTo(double distance) { //don't run 
+	public boolean driveTo(double distance) { //don't run yet
 		setDrive(driveSpeed, driveSpeed, false);
-		if (Math.abs(leftDist()) <= Math.abs(distance)- 1.5) {
-			driveSpeed += (((300.0/20.0)*(distance-leftDist())) - leftVelocity())/1000.0;
+		double MAINTAINED_VELOCITY = 1.0; //ftps
+		double DECELERATION_BUFFER = 1.5; //ft
+		
+		if (Math.abs(leftDist()) <= Math.abs(distance)- DECELERATION_BUFFER) {
+			driveSpeed += (((MAINTAINED_VELOCITY/DECELERATION_BUFFER)*(distance-leftDist())) - leftVelocity())/1000.0;
 			if (Math.abs(leftDist()) >= Math.abs(distance)) {
 				setDrive(0.0, 0.0, false);
 				return true;
 			}
 		}
 		else {
-			driveSpeed += (300.0*(distance/Math.abs(distance)) - leftVelocity())/8000.0;
+			driveSpeed += (MAINTAINED_VELOCITY*(distance/Math.abs(distance)) - leftVelocity())/8000.0;
 		}
 		return false;
 	}
