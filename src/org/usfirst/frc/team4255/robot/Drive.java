@@ -6,7 +6,8 @@ import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
 
 public class Drive {
-	public static TalonSRX leftDrive, rightDrive;
+	public static TalonSRX leftDrive;
+	public static TalonSRX rightDrive;
 	private static long leftZero, rightZero;
 	private double driveSpeed;
 	
@@ -22,7 +23,7 @@ public class Drive {
 		rightDrive.configSelectedFeedbackSensor(rightFeedback, 0, 10);
 	}
 	
-	public static void setDrive(double leftSpeed, double rightSpeed, boolean reverse) {
+	public void setDrive(double leftSpeed, double rightSpeed, boolean reverse) {
 		if (reverse) {
 			rightSpeed = -rightSpeed;
 			leftSpeed = -leftSpeed;
@@ -47,12 +48,12 @@ public class Drive {
 		rightDrive.set(ControlMode.PercentOutput, rightSpeed);
 	}
 	
-	public static void zeroLeftDist() {leftZero = leftDrive.getSelectedSensorPosition(0);}
+	public void zeroLeftDist() {leftZero = -leftDrive.getSelectedSensorPosition(0);}
 	
 	public static void zeroRightDist() {rightZero = rightDrive.getSelectedSensorPosition(0);}
 	
 	public static double leftDist() { //returns traveled distance in feet
-		return (double)(leftDrive.getSelectedSensorPosition(0)-leftZero)/4096.0*(6*Math.PI)/12.0;
+		return (double)(-leftDrive.getSelectedSensorPosition(0)-leftZero)/4096.0*(6*Math.PI)/12.0;
 	}
 	
 	public static double rightDist() { //returns traveled distance in feet
@@ -60,32 +61,42 @@ public class Drive {
 	}
 	
 	public static double leftVelocity() { //returns velocity in feet/second
-		return ((double)(leftDrive.getSelectedSensorVelocity(0)*10)/4096.0)*(6*Math.PI)/12.0;
+		return ((double)(-leftDrive.getSelectedSensorVelocity(0)*10)/4096.0)*(6*Math.PI)/12.0;
 	}
 	
 	public static double rightVelocity() { //returns velocity in feet/second
-		return ((double)(rightDrive.getSelectedSensorVelocity(0)*10)/4096.0)*(6*Math.PI)/12.0;
+		return ((double)(-rightDrive.getSelectedSensorVelocity(0)*10)/4096.0)*(6*Math.PI)/12.0;
 	}
 	
 	void reset() {
 		zeroLeftDist();
+		zeroRightDist();
 		driveSpeed = 0.0;
 	}
 	
 	public boolean driveTo(double distance) { //don't run yet
 		setDrive(driveSpeed, driveSpeed, false);
-		double MAINTAINED_VELOCITY = 1.0; //ftps
+		double MAINTAINED_VELOCITY = 2.0; //ftps
 		double DECELERATION_BUFFER = 1.5; //ft
 		
-		if (Math.abs(leftDist()) <= Math.abs(distance)- DECELERATION_BUFFER) {
-			driveSpeed += (((MAINTAINED_VELOCITY/DECELERATION_BUFFER)*(distance-leftDist())) - leftVelocity())/1000.0;
-			if (Math.abs(leftDist()) >= Math.abs(distance)) {
+		if (Math.abs(rightDist()) >= Math.abs(distance)- DECELERATION_BUFFER) {
+			driveSpeed += (((MAINTAINED_VELOCITY/DECELERATION_BUFFER)*((distance-rightDist())/MAINTAINED_VELOCITY)) - rightVelocity())/500.0;
+			if (Math.abs(rightDist()) >= Math.abs(distance)) {
 				setDrive(0.0, 0.0, false);
 				return true;
 			}
 		}
 		else {
-			driveSpeed += (MAINTAINED_VELOCITY*(distance/Math.abs(distance)) - leftVelocity())/8000.0;
+			driveSpeed += (MAINTAINED_VELOCITY*(distance/Math.abs(distance)) - rightVelocity())/200.0;
+		}
+		return false;
+	}
+	
+	public boolean simpleDriveTo(double speed, double distance) {
+		setDrive(Math.abs(speed)*(distance/Math.abs(distance)), Math.abs(speed)*(distance/Math.abs(distance)), false);
+		if (Math.abs(rightDist()) >= Math.abs(distance)) {
+			setDrive(0.0, 0.0, false);
+			return true;
 		}
 		return false;
 	}
