@@ -76,7 +76,7 @@ public class Drive {
 	
 	public boolean driveTo(double distance) { //don't run yet
 		setDrive(driveSpeed, driveSpeed, false);
-		double MAINTAINED_VELOCITY = 2.0; //ftps
+		double MAINTAINED_VELOCITY = 3.0; //ftps
 		double DECELERATION_BUFFER = 1.5; //ft
 		
 		if (Math.abs(rightDist()) >= Math.abs(distance)- DECELERATION_BUFFER) {
