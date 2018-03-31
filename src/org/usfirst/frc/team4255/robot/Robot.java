@@ -6,6 +6,7 @@ import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.I2C;
@@ -19,9 +20,11 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.Joystick;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 public class Robot extends IterativeRobot {
 	Timer time = new Timer();
+	Timer liftTime = new Timer();
 	
 	//SerialPort rpi = new SerialPort(9600, SerialPort.Port.kOnboard);
 	
@@ -36,29 +39,35 @@ public class Robot extends IterativeRobot {
     AnalogInput sonar = new AnalogInput(0); //5v/512
     //I2C pixyPort = new I2C(edu.wpi.first.wpilibj.I2C.Port.kOnboard, 0x45);
   	//Pixy pixy = new Pixy(pixyPort);
-  	int pan =0;
-  	int tilt = 0;
     
     TalonSRX leftDrive = new TalonSRX(0);
     TalonSRX leftFollow1 = new TalonSRX(1);
     TalonSRX rightDrive = new TalonSRX(3);
     TalonSRX rightFollow1 = new TalonSRX(4);
-    TalonSRX leftRamp = new TalonSRX(2);
+    TalonSRX lift2 = new TalonSRX(2);
     TalonSRX rightRamp = new TalonSRX(5);
+    
+    //DoubleSolenoid release = new DoubleSolenoid(0,1);
     
     Drive drive = new Drive(leftDrive, FeedbackDevice.None,
     		rightDrive, FeedbackDevice.CTRE_MagEncoder_Relative);
     NavDrive navDrive = new NavDrive(navX, drive);
     Route middleL = new Route(etc.middleL, drive, navDrive);
     Route middleR = new Route(etc.middleR, drive, navDrive);
+    Route leftL = new Route(etc.leftL, drive, navDrive);
+    Route leftR = new Route(etc.leftR, drive, navDrive);
+    Route rightR = new Route(etc.rightR, drive, navDrive);
+    Route rightL = new Route(etc.rightL, drive, navDrive);
     
-	Spark liftPrimary = new Spark(0);
-	Spark liftSecondary = new Spark(1);
-	Spark intake = new Spark(2);
-	Spark leadScrews = new Spark(3);
+	Spark lift = new Spark(0);
+	Spark intake = new Spark(1);
+	Spark tilt = new Spark(2);
+	Spark clamp = new Spark(3);
+	Encoder tiltEncoder = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
 	
 	CameraServer camserv;
 	UsbCamera cam0;
+	UsbCamera cam1;
 
 	String sides;
 	String position;
@@ -67,15 +76,41 @@ public class Robot extends IterativeRobot {
 	
 	@Override
 	public void robotInit() {
+		//release.set(DoubleSolenoid.Value.kOff);
+		
+		tiltEncoder.setDistancePerPulse(12/350.0);
+		
 	    rightDrive.setInverted(true);
 	    rightFollow1.setInverted(true);
 		leftFollow1.follow(leftDrive);
 		rightFollow1.follow(rightDrive);
 		
-		camserv = CameraServer.getInstance();
+		rightDrive.configPeakCurrentDuration(10, 0);
+		rightDrive.configPeakCurrentLimit(50, 0);
+		rightDrive.configContinuousCurrentLimit(40, 0);
+		rightDrive.enableCurrentLimit(true);
+		
+		leftDrive.configPeakCurrentDuration(10, 0);
+		leftDrive.configPeakCurrentLimit(50, 0);
+		leftDrive.configContinuousCurrentLimit(40, 0);
+		leftDrive.enableCurrentLimit(true);
+		
+		rightFollow1.configPeakCurrentDuration(10, 0);
+		rightFollow1.configPeakCurrentLimit(50, 0);
+		rightFollow1.configContinuousCurrentLimit(40, 0);
+		rightFollow1.enableCurrentLimit(true);
+		
+		leftFollow1.configPeakCurrentDuration(10, 0);
+		leftFollow1.configPeakCurrentLimit(50, 0);
+		leftFollow1.configContinuousCurrentLimit(40, 0);
+		leftFollow1.enableCurrentLimit(true);
+		
+		/*camserv = CameraServer.getInstance();
 	    
 	    cam0 = camserv.startAutomaticCapture(0);
 	    cam0.setResolution(1920, 1080);
+	    cam1 = camserv.startAutomaticCapture(1);
+	    cam1.setResolution(1920, 1080);*/
 	    //cam0.setFPS(30); //this probably won't work if you activate it
 	}
 
@@ -93,13 +128,42 @@ public class Robot extends IterativeRobot {
 		step = 0;
 		middleL.setTo(0);
 		middleR.setTo(0);
+		leftL.setTo(0);
+		leftR.setTo(0);
+		rightR.setTo(0);
+		rightL.setTo(0);
 	}
 
 	@Override
 	public void autonomousPeriodic() {
 		switch (position) {
 			case "Left":
-				if (sides.charAt(0) == 'L'){ //these distance values are accurate
+				if (!done) {
+					if (drive.driveTo(8.0)) done = true;
+				}
+				/*switch (sides.charAt(0)) {
+				case 'L': //Left side Left switch
+					switch (step) {
+					case 0:
+						if (liftUp() && leftL.run()) step++;
+						break;
+					case 1:
+						if (deploy()) step++;
+						break;
+					}
+					break;
+				case 'R': //Left side Right switch
+					switch (step) {
+					case 0:
+						if (liftUp() && leftR.run()) step++;
+						break;
+					case 1:
+						if (deploy()) step++;
+						break;
+					}
+					break;
+				}*/
+				/*if (sides.charAt(0) == 'L'){ //these distance values are accurate
 					//left side, switch left
 					switch(step){
 					case 0:
@@ -367,24 +431,64 @@ public class Robot extends IterativeRobot {
 							break;
 						}
 					}
-				}
+				}*/
 				break;
 				
 			case "Middle":
-				if (sides.charAt(0) == 'L') {
-					if (!done) {
-						if (middleL.run()) done = true;
+				switch (sides.charAt(0)) {
+				case 'L':
+					switch (step) {
+					case 0:
+						//if (liftUp() && middleL.run()) step++;
+						if (middleL.run()) step++;
+						break;
+					case 1:
+						//if (deploy()) step++;
+						step++;
+						break;
 					}
-				} 
-				else {
-					if (!done) {
-						if (middleR.run()) done = true;
+					break;
+				case 'R':
+					switch (step) {
+					case 0:
+						//if (liftUp() && middleR.run()) step++;
+						if (middleR.run()) step++;
+						break;
+					case 1:
+						//if (deploy()) step++;
+						step++;
+						break;
 					}
+					break;
 				}
 				break;
-				
 			case "Right":
-				if (sides.charAt(0) == 'R'){
+				if (!done) {
+					if (drive.driveTo(8.0)) done = true;
+				}
+				/*switch (sides.charAt(0)) {
+				case 'L':
+					switch (step) {
+					case 0:
+						if (liftUp() && rightL.run()) step++;
+						break;
+					case 1:
+						if (deploy()) step++;
+						break;
+					}
+					break;
+				case 'R':
+					switch (step) {
+					case 0:
+						if (liftUp() && rightL.run()) step++;
+						break;
+					case 1:
+						if (deploy()) step++;
+						break;
+					}
+					break;
+				}*/
+				/*if (sides.charAt(0) == 'R'){
 					switch(step){
 					case 0:
 						if(drive.simpleDriveTo(0.35, 12.375)) nextStep();
@@ -656,28 +760,49 @@ public class Robot extends IterativeRobot {
 						}
 					}
 				}
+				*/
 				break;
 			}
 	}
 	
 	@Override
 	public void teleopInit() {
+		resetLift();
 		time.start();
-		pan = 500;
-		tilt = 500;
 		drive.zeroLeftDist();
 	}
 	
 	@Override
 	public void teleopPeriodic() {
+		System.out.println(tiltEncoder.getDistance());
+		
+		lift.set(jSide.getY()+0.2);
+		
+		if(jSide.getPOV() == 0) lift2.set(ControlMode.PercentOutput, 0.8);
+		else if(jSide.getPOV() == 180) lift2.set(ControlMode.PercentOutput, -0.8);
+		else lift2.set(ControlMode.PercentOutput, 0);
+		
+		if(jSide.getRawButton(5)) clamp.set(-.8);
+		else if (jSide.getRawButton(6)) clamp.set(.8);
+		else clamp.set(0);
+		
+		if(jSide.getRawButton(2)) intake.set(1.0);
+		else if(jSide.getRawButton(1)) intake.set(-1.0);
+		else intake.set(0);
+		
+		if(jSide.getRawButton(3)) tilt.set(-.4);
+		else if(jSide.getRawButton(4)) tilt.set(.4);
+		else tilt.set(-.005);
 		//System.out.println(rpi.readString());
 		drive.setDrive(-jLeft.getY(), -jRight.getY(), false);
-		liftPrimary.set(-jSide.getY());
 		/*if (Esplora1.getRawButton(2)) {
 			drive.singleJoystickDrive(-Esplora2.getY(), -Esplora2.getX(), false);
 		} else {
 			drive.singleJoystickDrive(0.0, 0.0, false);
 		}*/
+		
+		//if(jSide.getRawButton(1)) release.set(DoubleSolenoid.Value.kForward);
+		//else release.set(DoubleSolenoid.Value.kReverse);
 	}
 	
 	@Override
@@ -688,5 +813,54 @@ public class Robot extends IterativeRobot {
 		navDrive.reset();
 		drive.reset();
 		step++;
+	}
+	
+	public boolean liftUp() {
+		double timeToLift = 0.6;
+		if (liftTime.get() >= timeToLift) {
+			lift.set(0.2);
+			return setTilt(0.25);
+		} else {
+			lift.set(0.8);
+			tilt.set(0.0);
+		}
+		return false;
+	}
+	
+	public boolean deploy() {
+		double deployDist = 12.0; //inches
+		lift.set(0.2);
+		if ((sonar.getVoltage()*512.0)/5.0 <= deployDist) {
+			if (liftTime.get() >= 1.0) {
+				intake.set(0.0);
+				return true;
+			} else intake.set(1.0);
+		} else {
+			drive.setDrive(0.5, 0.5, false);
+			intake.set(-0.2);
+			liftTime.reset();
+		}
+		return false;
+	}
+	
+	public boolean setTilt(double toVal) {
+		double margin = 0.02;
+		double motorVal = etc.constrain((toVal-tiltEncoder.getDistancePerPulse()), -1.0, 1.0);
+		tilt.set(motorVal);
+		if (Math.abs(motorVal) <= margin) {
+			tilt.set(0.1);
+			return true;
+		}
+		return false;
+	}
+	
+	public void liftInit() {
+		liftTime.reset();
+		liftTime.start();
+		tiltEncoder.reset();
+	}
+	
+	public void resetLift() {
+		liftTime.reset();
 	}
 }
